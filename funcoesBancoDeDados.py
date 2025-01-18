@@ -5,7 +5,6 @@ import copy
 mydb = mysql.connector.connect( host="localhost", user="root", password="almoxarifado", database='almoxarifado' )
 mycursor = mydb.cursor()
 
-#tabelas=[]
 # funcionarios = ['leandro','caina','gabriel','carlao','carlosm','valter',
 #                 'francinaldo', 'jailson', 'juliedson', 'vinicius sm',
 #                 'antunes','joselito','douglas','kevin','osvaldo','zaqueu',
@@ -33,12 +32,12 @@ def exe(querry, save=False):
             print("commit")
     return result
 
-#################3 preenche o funcionariodb com o que estiver no banco de dados
+################# preenche o funcionariodb com o que estiver no banco de dados
 
 def fimDaRecorrencia(obj):
-    
     """essa função deve ser usada sempre que uma função de interação recorrente for usada e não houver uma interação de recorrencia subsequente"""
-
+    
+    obj.enviaParaRespostaGUI("fim da interação ",nomesColunas  =  [])
     obj.comandControler[1]     = copy.deepcopy([False,None,{}])
     
 def atualizaVariavelFuncionarios(obj):
@@ -80,7 +79,6 @@ def validezDoIdentificador(identificador):
 
 
 def inputTratada(string=''):
-    
     ####### essa função não será usada quando executando pela GUI!!!!!!!!!!
 
     stringInicial = input(string).lower()
@@ -254,34 +252,61 @@ def checaRegistroEquip(equip):
 def recebeFuncionarioDaGUI(palavras,obj):
     pass
 
+def recorenteNomeFuncionarioNovo(obj,resposta):
+    nome = copy.copy((resposta))
+    print('o nome que entrou na funcao recorrente aqui foi:  ', nome)
+    if nome!= '' and nome in obj.funcionariosdb  :
+        obj.enviaParaRespostaGUI(f" o funcionario {nome} ja está registrado",nomesColunas=[])
+    else:
+            
+        obj.enviaParaRespostaGUI( "profissao?  "  ,  nomesColunas  =  []  )
+        obj.setaFuncaoRecorrente(recorrenteProfissaoFuncionarioNovo)
+        obj.comandControler[1]  =  obj.comandControler[1][:-1]       ############## essa linha deleta a resposta da função anterior   ######
+        obj.comandControler[1][2]['nome']  =  nome
 
+def recorrenteProfissaoFuncionarioNovo(obj,resposta):
+    nome = obj.comandControler[1][2]['nome']
+    profissao = resposta
+    querry  =  f"insert into funcionarios (nome, funcao) values ('{nome}' , '{profissao}' )"
+##    if debug.debug:
+##        print('a querry é: ' + querry)
+    exe(  querry  ,  save  =  True  )
+        # mydb.commit()
+    obj.atualizaVariavelFuncionarios()
+    fimDaRecorrencia(obj)
+    
+
+##    obj.enviaParaRespostaGUI( pergunta  ,  nomesColunas  =  []  )
+##    obj.comandControler[1][1]  =  recorrenteSeEstaEntreOsSuspeitos
+##    obj.comandControler[1]  =  obj.comandControler[1][:-1]
 def registraFuncionarioNovo(obj):
     debug  =  Debug()
     if obj.FromGUI:
-        obj.enviaParaRespostaGUI("nome usual: ",colunas  =  []  )
-
-        funcionario = 'funcionario vindo da GUI'    ######################################## varias interações recorrentes
-    else:
-
-        funcionario  =  input("nome usual: ")
-    
-    if funcionario in obj.funcionariosdb  :
-        print(f" o funcionario {funcionario} ja está registrado")
-    else:
-        if obj.FromGUI:
-            funcao  =  'funcao vinda da GUI'             ############################################
-        else:
-            funcao  =  input('funcao: ')
-
-        querry  =  f"insert into funcionarios (nome, funcao) values ('{funcionario}' , '{funcao}' )"
-        if debug.debug:
-            print('a querry é: ' + querry)
-        obj.exe(  querry  ,  save  =  True  )
-        # mydb.commit()
-    obj.atualizaVariavelFuncionarios()
-    if debug.debug:
-        print("consegui executar ela")
-    #return func
+        obj.setaFuncaoRecorrente(recorenteNomeFuncionarioNovo)
+##        obj.comandControler[1].append('')
+        obj.enviaParaRespostaGUI("nome usual: ",nomesColunas  =  []  )
+        
+#    else:
+#
+#        funcionario  =  input("nome usual: ")
+#    
+#        if funcionario in obj.funcionariosdb  :
+#            print(f" o funcionario {funcionario} ja está registrado")
+#        else:
+#            if obj.FromGUI:
+#                funcao  =  'funcao vinda da GUI'             ############################################
+#            else:
+#                funcao  =  input('funcao: ')
+#
+#            querry  =  f"insert into funcionarios (nome, funcao) values ('{funcionario}' , '{funcao}' )"
+#            if debug.debug:
+#                print('a querry é: ' + querry)
+#            exe(  querry  ,  save  =  True  )
+#            # mydb.commit()
+#        obj.atualizaVariavelFuncionarios()
+#        if debug.debug:
+#            print("consegui executar ela")
+#    #return func
     
 def registraFaltaDeNumeracao(palavraSemNumero):
     
@@ -452,7 +477,7 @@ def recorrenteSeEstaEntreOsSuspeitos(obj,resposta):
         obj.historicoDeComandos.append(registroDeComando)        
 
     else:
-        obj.enviaParaRespostaGUI('posicao do dono desconhecida')         ########### apenas provisório isso aqui, ja que a proxima resposta fala quase o mesmo   ######
+##        obj.enviaParaRespostaGUI('posicao do dono desconhecida',nomesColunas=[])         ########### apenas provisório isso aqui, ja que a proxima resposta fala quase o mesmo   ######
                             
         donoReal       =  'desconhecido'
         querrySemDono  =  f"""insert into registroDeSaidasDeEquips
@@ -460,7 +485,7 @@ def recorrenteSeEstaEntreOsSuspeitos(obj,resposta):
                                     values ('{donoReal}', '{nomeFer}' , current_date(),Current_time(), '{identificador}'  )   """
         exe(querrySemDono)
 
-        obj.enviaParaRespostaGUI(f"""{nomeFer+'-'+identificador} de dono {donoReal} retornou """)
+        obj.enviaParaRespostaGUI(f"""{nomeFer+'-'+identificador} de dono {donoReal} retornou """,nomesColunas=[])
 
         registroDeComando                  =  {
                 'funcionario'   :  donoReal,
@@ -758,7 +783,7 @@ def checaRegistroFerramentaERegistra(siglaSemNumero):
 def pendenciasFuncionario(obj):
     
     funcionario   =  obj.funcionarioAtual
-    equipsAtuais  =  exe(f"""select Ferramenta, identificador, DataSaida, HorarioSaida from registroDeSaidasDeEquips
+    equipsAtuais  =  exe(f"""select id,Ferramenta, identificador, DataSaida, HorarioSaida from registroDeSaidasDeEquips
                        where
                        funcionario ='{funcionario}' and
                        DataRetorno is null
@@ -767,7 +792,7 @@ def pendenciasFuncionario(obj):
                        DataSaida desc """)
     if len(equipsAtuais)  >  0 :
         if obj.FromGUI:
-            obj.enviaParaRespostaGUI(equipsAtuais,nomesColunas  =  [  'Ferramenta' , 'identificador' , 'DataSaida' , 'HorarioSaida'  ]  )
+            obj.enviaParaRespostaGUI(equipsAtuais,nomesColunas  =  [  'Ferramenta' , 'identificador' , 'DataSaida' , 'HorarioSaida'  ], identificador = True  )
         else:
             resposta = f"\n\n{funcionario} está com:\n "
             printBonito(trataRegistro(equipsAtuais,obj),obj)
@@ -782,17 +807,17 @@ def equipamentosHojeDeFuncionario(obj):
 
     """equipamentos do funcionario hoje"""
     
-    equipsJaDevolvidosHoje  =  exe(f""" select Ferramenta, identificador , HorarioSaida, HorarioRetorno from registroDeSaidasDeEquips
+    equipsJaDevolvidosHoje  =  exe(f""" select id,  Ferramenta, identificador , HorarioSaida, HorarioRetorno from registroDeSaidasDeEquips
         where
         funcionario ='{obj.funcionarioAtual}' and
-        DataRetorno = current_date()""")
+        DataSaida = current_date()""")
     
     if len(equipsJaDevolvidosHoje)>0:
 
         resposta  =  'lista de equips que ele pegou e devolveu hoje:\n'
 
         if obj.FromGUI:
-            obj.enviaParaRespostaGUI( equipsJaDevolvidosHoje,nomesColunas  =  [ 'Ferramenta' , 'identificador' , 'HorarioSaida' , 'HorarioRetorno'])
+            obj.enviaParaRespostaGUI( equipsJaDevolvidosHoje,nomesColunas  =  [ 'Ferramenta' , 'identificador' , 'HorarioSaida' , 'HorarioRetorno']  ,  identificador  =  True  )
 
         else:
             print()
@@ -806,7 +831,7 @@ def equipamentosHojeDeFuncionario(obj):
         else:
             print(resposta)
 
-    pendenciasFuncionario(obj)
+##    pendenciasFuncionario(obj)
 
     
 def historicoFerramenta(obj):
@@ -821,14 +846,14 @@ def historicoFerramenta(obj):
                 
         for ferramenta in Ferramentas:
                 
-            historico  =  exe(f"""select  Funcionario, DataSaida, HorarioSaida, DataRetorno, HorarioRetorno  from registroDeSaidasDeEquips
+            historico  =  exe(f"""select  id,  Funcionario, DataSaida, HorarioSaida, DataRetorno, HorarioRetorno  from registroDeSaidasDeEquips
                       where
                       Ferramenta='{palavraSemNumero}' and
                       identificador = '{identificador}'
                       order by
                   DataSaida desc limit 60""")
             if obj.FromGUI:
-                obj.enviaParaRespostaGUI( historico , [  'Funcionario'  ,  'DataSaida' ,  'HorarioSaida' ,  'DataRetorno'  ,  'HorarioRetorno'  ]  )
+                obj.enviaParaRespostaGUI( historico , nomesColunas  =  [  'Funcionario'  ,  'DataSaida' ,  'HorarioSaida' ,  'DataRetorno'  ,  'HorarioRetorno'  ] , identificador = True )
             else:
                 input(f"{palavraSemNumero,identificador} -->")
                 printBonito(historico)
@@ -955,12 +980,12 @@ def trataRegistro(registros, obj):
 
 
 def equipsforaHoje(obj):
-    registros        =  exe("select Funcionario, Ferramenta,identificador, HorarioSaida from registroDeSaidasDeEquips where DataSaida= current_date() and DataRetorno  is null")
+    registros        =  exe("select  id,  Funcionario, Ferramenta,identificador, HorarioSaida from registroDeSaidasDeEquips where DataSaida= current_date() and DataRetorno  is null")
     if len(registros)  >  0  :
             
         registroTratado  = trataRegistro(  registros  ,  obj  ) 
         if obj.FromGUI:
-            obj.enviaParaRespostaGUI(registroTratado,nomesColunas  =  [  'funcionario'  ,  'ferramenta'  ,  'horarioSaida'  ]  )
+            obj.enviaParaRespostaGUI(registroTratado,nomesColunas  =  [  'funcionario'  ,  'ferramenta'  ,  'horarioSaida'  ]  ,  identificador  =  True  )
         else:
             printBonito(  registroTratado  ,  obj  )
     else:
@@ -968,11 +993,11 @@ def equipsforaHoje(obj):
             obj.enviaParaRespostaGUI(  'nenhum equipamento de hoje fora no momento'  ,  nomesColunas  =  []  )
 def histHoje(obj):
     
-    registro =  exe("select Funcionario, Ferramenta, identificador, HorarioSaida, HorarioRetorno from registroDeSaidasDeEquips where DataSaida = current_date()")
+    registro =  exe("select id, Funcionario, Ferramenta, identificador, HorarioSaida, HorarioRetorno from registroDeSaidasDeEquips where DataSaida = current_date()")
     registroTratado  =  trataRegistro(registro,obj)
     antes = '\no historico hoje é: \n\n'
     if obj.FromGUI:
-        obj.enviaParaRespostaGUI(  registroTratado  ,  nomesColunas  =  [  'Funcionario'  ,  'Ferramenta'  ,  'HorarioSaida'  ,  'HorarioRetorno'  ] ,  antes  =  antes )
+        obj.enviaParaRespostaGUI(  registroTratado  ,  nomesColunas  =  [  'Funcionario'  ,  'Ferramenta'  ,  'HorarioSaida'  ,  'HorarioRetorno'  ] ,  antes  =  antes,identificador = True )
     else: 
         print(antes)
         printBonito(registroTratado)

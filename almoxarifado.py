@@ -1,4 +1,3 @@
-#from .funcoesBancoDeDados import *
 import funcoesBancoDeDados as fbd
 import copy
 # FerEquip={
@@ -41,31 +40,13 @@ import copy
 #     'sem':'serra mármore',}
 ## esse codigo abaixo é para recolocar as siglas quando for refazer o banco de dados
 
-##for x in FerEquip:
-##    querry=f"insert into siglasENomesDeEquips (abreviaturaDeEquipamento,nomeCompleto) values ('{x}','{FerEquip[x]}')"
-##    print(querry)
-##    exe(querry)
+#for x in FerEquip:
+#    querry=f"insert into siglasENomesDeEquips (abreviaturaDeEquipamento,nomeCompleto) values ('{x}','{FerEquip[x]}')"
+#    print(querry)
+#    exe(querry)
 
-## esse aqui é para pegar as siglas salvas no banco de dados
 
-#print( 'depois de sair da funcao o FerEquipdb é: ',FerEquipdb)
-##comandoFuncao={
-##'funcionarios':[False,'mostraFuncionarios'],
-##    'commit':[False,'commit'],                         # tem que implementar esse comando
-##    'obj':[False,''],                            # tem que implementar esse comando
-##    'newf':[False,'registraFuncionarioNovo'],                           # tem que implementar esse comando
-##    'newfer':[False,'registraNovaFerramenta'],                         # tem que implementar esse comando
-##    'saida':[False,'registraSaida'],                          # tem que implementar esse comando
-##    'entrada':[False,'registraEntrada'],                        # tem que implementar esse comando
-##    'historico':[False,''],
-##    }
     
-#tabelas=exe('show tables')
-
-##funcionarioAtual = ''
-##modoAtual = ''
-##equipAtual = ''
-##pegaProximoFuncionario=False
 
 
 
@@ -106,10 +87,8 @@ class Controle:
         
         self.comandControler  =  {
     'funcionarios'  :  [False  ,  fbd.mostraFuncionarios             ],       # feito
-    #'commit'        :  [False  ,  fbd.commit                         ],       # feito
     'obj'           :  [False  ,  fbd.printObj                       ],       # feito
     'newf'          :  [False  ,  fbd.registraFuncionarioNovo        ],       # feito
-    #'newfer'        :  [False  ,  fbd.registraNovaFerramenta         ],       # tem que implementar esse comando
     'saida'         :  [False  ,  fbd.modoSaida                      ],       # tem que implementar esse comando
     's'             :  [False  ,  fbd.modoSaida                      ],
     'entrada'       :  [False  ,  fbd.modoEntrada                    ],       # tem que implementar esse comando
@@ -133,11 +112,12 @@ class Controle:
 
     class RespostaUnitaria:
         
-        def __init__( self  ,  resposta  =  []  ,  colunas = []  ,  antes  =  ''  ) :
+        def __init__( self  ,  resposta  =  []  ,  colunas = []  ,  antes  =  '',  ids  =  []  ) :
 
             self.avisoAntes = antes
             self.resposta   =  resposta   ###############     aqui tem que ser uma lista de linhas
             self.colunas    =  colunas    ###############     aqui vai a lista com o nome das colunas
+            self.listaDeIDs  =  copy.deepcopy(ids)
         
         def __str__(self):
             
@@ -151,21 +131,25 @@ class Controle:
         self.comandControler[1][0] = True             ###################### preciso setar isso sempre que for a primeira vez que usa função recorrente
         self.comandControler[1][1] = funcao 
     
-    def enviaParaRespostaGUI(  self  ,  resposta  ,  nomesColunas  ,  antes  =  ''  ) :
-
+    def enviaParaRespostaGUI(  self  ,  resposta  ,  nomesColunas  ,  antes  =  '' ,identificador =  False ) :
+        """
+        nesta função para pegar o id corretamente ele precisa vir como o primeiro valor
+        """
         print('dentro do enviaParaRespostaGUI veio o argumento:  ',resposta)
         respostaAtual=copy.deepcopy(self.RespostaUnitaria())
         respostaAtual.colunas  =  nomesColunas
-
-##        if self.respostaParaGUI:             ######################## se a resposta ja não estiver vazia acrescenta um elemento "vazio" nela
-##            self.respostaParaGUI['resposta'].append(self.signalToWait)
             
         if type(resposta)  ==  str  :        ######################## se for string acrescenta diretamenta a string dentro da resposta da GUI
             respostaAtual.resposta.append(resposta)
         
         elif type(resposta) in [list,tuple]:
+            listaDeIDs =  []
             for linha in resposta:
-                respostaAtual.resposta.append(linha)
+                if identificador:
+                    respostaAtual.resposta.append(linha[1:])
+                    respostaAtual.listaDeIDs.append(linha[0])
+                else:
+                    respostaAtual.resposta.append(linha)
         else:
             print("não sei trabalhar com isso: ",resposta)
             print('o tipo é: ', type(resposta))
@@ -250,26 +234,33 @@ class Controle:
         return a
 
     def action(self):
-
-        # nessa função haverá o comando para de fato executar os comandos requeridos
+        """nessa função haverá o comando para de fato executar os comandos requeridos"""
+        
         if not self.funcionariosdb or not self.ferEquipdb:
             self.preparaObj()
-            
-        for x in self.comandControler:
-            if  x  ==  1  :
-                if self.comandControler[x][1]:
-                    print('a linha do comand controler referente Às funções recorrentes é: '  ,  self.comandControler[  x  ]  )
-                    self.comandControler[  x  ][  1  ](  self  ,  self.comandControler[  x  ][  3  ]  )
-            elif self.comandControler[  x  ][  0  ]  :
+        if  self.comandControler[1][0]:
+            resposta  =  self.comandControler[  1  ][  3  ]
+            self.comandControler[  1  ][  1  ](  resposta  )
+            if len(  self.comandControler[1] )  >=  4 :
+                print('vou apagar a resposta por fora da função de recorrencia e a resposta é:  ',self.comandControler[1])
+                self.comandControler[1] = self.comandControler[1][:3]
+            else:
+                print('a função apagou a resposta internamente')
+        else:
+            for x in self.comandControler:
+                
+                if  x  ==  1  :
+                    pass                       
+                else:
+                    print('o atributo do comand controler é:  ',x)
+                    if self.comandControler[  x  ][  0  ]  :
 
-                self.comandControler[  x  ][  1  ](  self  )     #### invoca a função referenciada ao comando
-                self.comandControler[  x  ][  0  ]  =  False
-        
-        
+                        self.comandControler[  x  ][  1  ](  self  )     #### invoca a função referenciada ao comando
+                        self.comandControler[  x  ][  0  ]  =  False
+                    
         if self.funcionarioQueSeraOAtual:
             self.atualizaFuncionario(self.funcionarioQueSeraOAtual)
             self.funcionarioQueSeraOAtual  =  ''
-
 
         if len(self.listaEquipAtual)  >  0  :
             if self.funcionarioAtual  :
@@ -290,43 +281,102 @@ class Controle:
                     print('não há funcionario definido')
                 
         if self.verificarPossiveisEquips:
-            for  coisa  in  self.possiveisEquipsParaRegistrar  :
-                if  self.FromGUI  :
-                    pass
-                else  :
+            print('vou verificar possíveis equips novos, e a lista é: ',self.possiveisEquipsParaRegistrar)
+            ######################################### acho que o problema esta nessa variavel "possiveisEquipsParaRegistrar"
+            ######################################### pois não estou alterando ela durante as recorrências
+            if  self.FromGUI  :
+
+                sigla  =  self.possiveisEquipsParaRegistrar[0]
+                self.enviaParaRespostaGUI(f"a palavra: {sigla} é uma nova sigla de ferramenta? (y/n)",nomesColunas  =  []  )
+                self.comandControler[1][0]  =  True
+                self.comandControler[1][2]['sigla']  = copy.copy(sigla)
+                self.comandControler[1][1]  =  self.recorrenteConfirmaSeEFerramenta
+                                    
+                if len(self.possiveisEquipsParaRegistrar) == 1:
+                    self.comandControler[1][2]['equipsRemanescentes'] = [].copy()
+                    
+                elif len(self.possiveisEquipsParaRegistrar)  >  1  :
+                    self.comandControler[1][2]['equipsRemanescentes'] = self.possiveisEquipsParaRegistrar[1:]
+                    print('a linha da recorrencia aqui esta assim:  ',self.comandControler[1])
+            else  :
+
+                for  coisa  in  self.possiveisEquipsParaRegistrar  :
 
                     if input(f"a palavra: {coisa} é uma nova sigla de ferramenta? (y/n)").lower() == 'y':
                         nomeCompleto = input('qual o nome dessa ferramenta?').lower()
                         querry = f"insert into siglasENomesDeEquips (abreviaturaDeEquipamento,nomeCompleto) values ('{coisa}','{nomeCompleto}')"
-    ##                    print('vou executar a querry: '+querry)
+
                         fbd.exe(querry)
                         fbd.mydb.commit()
                         self.atualizaFerEquipdb()
-    ##                    querRegistrar= input('quer registrar saida/entrada?(s/n)')
-    ##                    if querRegistrar =='s':
-    ##                        print('preciso implementar essa parte')
-                            
                     else:                    
                         print( ' eu nao sei o que é isso: ',coisa)
-            self.verificarPossiveisEquips = False
+
+                self.verificarPossiveisEquips = False
+                self.possiveisEquipsParaRegistrar = [].copy()
+            
+    def recorrenteConfirmaSeEFerramenta(self,resposta):
+        print('cheguei na recorrente da possivel ferramenta')
+
+        palavra  =  ''
+        for x in resposta.split(' '):
+            if x:
+                palavra  =  x.lower()
+                break
+        if palavra == 'y':
+            print('a resposta foi que sim')
+            self.enviaParaRespostaGUI('qual o nome dessa ferramenta?', nomesColunas  =  [])
+            self.comandControler[1][1]  =  self.recorrenteRegistraNomeFerramenta
+        else:
+            sigla  =  self.comandControler[1][2]['sigla'] 
+            self.enviaParaRespostaGUI(f'não sei o que é isso  {sigla}', nomesColunas  =  [])
+            self.verificaMaisFerramentasParaRecorrencia()
+
+
+    def recorrenteRegistraNomeFerramenta(self,resposta):
+        print('entrei na segunda funcao de registrar nova ferramenta')
+        sigla  =  self.comandControler[1][2]['sigla']
+        nomeCompleto = resposta
+
+        querry = f"insert into siglasENomesDeEquips (abreviaturaDeEquipamento,nomeCompleto) values ('{sigla}','{nomeCompleto}')"
+
+        fbd.exe(querry)
+        fbd.mydb.commit()
+
+        self.atualizaFerEquipdb()
+        self.verificaMaisFerramentasParaRecorrencia()
+
+    def verificaMaisFerramentasParaRecorrencia(self):
+        if len(self.comandControler[1][2]['equipsRemanescentes'])  >  0:
+            palavra  =  self.comandControler[1][2]['equipsRemanescentes'][0]
+            self.comandControler[1][2]['sigla']  = palavra
+            self.comandControler[1][2]['equipsRemanescentes']  =  self.comandControler[1][2]['equipsRemanescentes'][1:]
+            self.enviaParaRespostaGUI(f"a palavra: {palavra} é uma nova sigla de ferramenta? (y/n)", nomesColunas  =  []  )
+            self.comandControler[1][1]  =  self.recorrenteConfirmaSeEFerramenta
+        else:
+            self.verificarPossiveisEquips  =  False
+            fbd.fimDaRecorrencia(self)
             self.possiveisEquipsParaRegistrar = [].copy()
             
-                
+            
     def atualizaFuncionario(self,funcionarioNovo):
-
+        """toda atualização de funcionario atual tem que ser feita por aqui"""
         funcionarioAntigo      =  self.funcionarioAtual
         self.funcionarioAtual  =  funcionarioNovo   # aqui que eu atualizo o funcionario atual
+
         if funcionarioNovo: 
             if funcionarioAntigo:
                 resposta  =  ' funcionario mudou de '  +  funcionarioAntigo  +  ' para '  +  self.funcionarioAtual
-##                if self.FromGUI:
-##                    self.enviaParaRespostaGUI(resposta,nomesColunas  =  []  )
-                print(resposta)
+                if self.FromGUI:
+                    self.enviaParaRespostaGUI(resposta,nomesColunas  =  []  )
+                else:
+                    print(resposta)
             else :
                 resposta = 'funcionario atual é : '  +  self.funcionarioAtual
-##                if self.FromGUI:                   
-##                    self.enviaParaRespostaGUI(resposta,nomesColunas  =  []  )
-                print(resposta)
+                if self.FromGUI:                   
+                    self.enviaParaRespostaGUI(resposta,nomesColunas  =  []  )
+                else:
+                    print(resposta)
         else:
             self.funcionarioAtual  =  ''
             
@@ -359,12 +409,9 @@ class Controle:
         self.stringDosComandosDoBancoDeDados  =  [].copy()
         
 
-##print(VariaveisDeControle)
 def stringParser(  listaDeStrings  ,  obj  ):
     """
-
     essa função precisa receber a lista de strings ja pre-tratada pela função 'inputTratada'
-    
     """
     palavras  =  listaDeStrings
     print("as palavras que entraram no string parser são:",palavras)
@@ -373,14 +420,13 @@ def stringParser(  listaDeStrings  ,  obj  ):
     
     if obj.comandControler[1][0]:  ##############################   usada em caso de interações recorrentes. vai acrescentar no fim da lista correspondente #############################
                                ##############################   do comandControler a resposta para a função de recorrencia apontada nele  ###########################################
-        
+        print('vim parar nesse if do stringparser e a palavra é:  ',palavras)
         obj.comandControler[1].append(palavras)
     else:
         
         for  palavra  in  palavras  :
             
             if  palavra  in   obj.comandControler  :
-                ###################### retirarei esse aviso no futuro ##########################################
                 resposta = 'reconheci o comando: '  +  str(palavra)
 
                 if obj.FromGUI:
@@ -393,24 +439,19 @@ def stringParser(  listaDeStrings  ,  obj  ):
                 
             elif  palavra  in  obj.funcionariosdb  :
                 obj.funcionarioQueSeraOAtual  =  palavra
-                
-                
+                                
             else  :
                 fbd.analizaStringDeFerramenta(  obj  ,  palavra  )
 
-##    obj.comandControler  =  comandControler
     return obj
 def prompt():
-        
+    """ essa função executa o programa via terminal"""        
     VariaveisDeControle  =  Controle()
     VariaveisDeControle.atualizaVariavelFuncionarios()    
     while  True  :
-           #try:
         listaDePalavras  =  fbd.inputTratada()
-           ##    print("vc digitou : ", string)
         VariaveisDeControle  =  stringParser(  listaDePalavras  ,  VariaveisDeControle  )
         VariaveisDeControle.action()
-    #    except Exception as e: print(e)    
         
         
     
